@@ -1,0 +1,11 @@
+#! /bin/bash
+
+if [[ "$1" == "--help" ]]; then
+  echo Path: $0
+  echo Descript: Fuck the GFW with GoAgant
+  echo Usage: $(basename $0)
+  exit 0
+fi
+
+python ~/goagent/goagent-1.6.10/local/proxy.py &
+

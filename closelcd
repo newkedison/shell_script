@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [[ "$1" == "--help" ]]; then
+  echo Path: $0
+  echo Descript: Lock computer and close lcd to save power
+  echo Usage: $(basename $0)
+  exit 0
+fi
+sleep 1
+gnome-screensaver-command -l 
+sleep 2 
+xset dpms force off

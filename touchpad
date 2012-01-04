@@ -1,0 +1,39 @@
+#!/bin/bash
+
+if [ -z "$1" ] ; then
+  echo Usage:
+  echo sudo $(basename $0) on
+  echo sudo $(basename $0) off
+  exit 1
+fi
+
+if [[ "$1" == "--help" ]]; then
+  echo Path: $0
+  echo Descript: Enable or disable the touchpad
+  echo Usage: 
+  echo $(basename $0) on
+  echo $(basename $0) off
+  exit 0
+fi
+
+#if [[ "$UID" != 0 ]]; then
+#  echo use \"sudo\" to run this script
+#  exit 2
+#fi
+
+case $1 in
+  [Oo][Nn])
+    sudo modprobe psmouse
+    echo the TouchPad is Enable now....
+    ;;
+  [Oo][Ff][Ff])
+    sudo modprobe -r psmouse
+    echo the TouchPad is Disable now....
+    ;;
+  *)
+    echo "Unknow parameter $1"
+    exit 3
+    ;;
+esac
+
+exit 0

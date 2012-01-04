@@ -1,0 +1,21 @@
+#!/bin/bash
+
+dir=$(dirname $0)
+. ${dir}/echoex.sh
+
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+  echoex -green "Path:     " -r $0 -n
+  echoex -green "Descript: " -r "List remote windows share folder and mount one of then" -n
+  echoex -green Usage: -r -n
+  echo "  $(basename $0)"
+  echo "  $(basename $0) //192.168.1.88"
+  exit 0
+fi
+
+if [ -n "$1" ]; then
+  python ${dir}/winshare.py -m /home/newk/WindowsShare -H $1
+else
+  python ${dir}/winshare.py -m /home/newk/WindowsShare
+fi
+
+

@@ -1,0 +1,26 @@
+#!/bin/bash
+
+. echoex.sh
+
+if [[ "$1" == "" ]]; then
+  echo
+  echo Here is the list of all script as so far:
+  echoex -green -n
+  #这一句的作用是，列出本目录下所有可执行文件
+  #$(dirname $0)是获取这个文件所在的路径
+  #ls -1 将结果按n行1列显示，-F 在可执行文件后面加*号标记
+  #grep -v $(basename $0) 过滤掉本文件
+  #grep .*\\\* 只保留最后有个*号的行
+  #最后用sed去掉行末的星号
+  ls $(dirname $0) -1 -F | grep -v $(basename $0) | grep .*\\\* | sed -e 's/\(.*\)\*$/\1/'
+  echoex -r -n
+  echo Use \"$(basename $0) script_name\" to see the detail of every script
+else
+  if [[ $(ls $(dirname $0)| grep $1) ]]; then
+    $1 --help
+  else
+    echo cannot find a script named \"$1\"
+    exit 1
+  fi
+fi
+exit 0
