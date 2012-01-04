@@ -1,0 +1,28 @@
+=my script=
+
+[abstract]
+Here are some useful scripts for me in this repo
+and most of them is written by myself
+
+[install]
+1. Pull this repo from GitHub to a local folder(i.e. ~/myscripts)
+2. Add the local folder to PATH in .bashrc
+$ PATH=$PATH:$HOME/myscripts
+3. That's all
+
+[how to use]
+1 show all available script
+$ myscript
+2 show a script's usage
+$ myscript script_name
+3 call a script
+$ script_name
+
+[tips for write script]
+I will write these in another note.
+
+
+Note: this file is written by Vim, and you can find a simple syntax file on:
+https://github.com/newkedison/my-study-notes/blob/master/tools/mynotes.vim
+
+vim:ft=mynotes
