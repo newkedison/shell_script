@@ -25,7 +25,7 @@ def usage():
   print '  -u/--username username      username, if not set, it will be "any"'
   print '  -p/--password password      password, if not set, it will be "any"'
   print '  -m/--mount /mnt             mount pos, if not set, it will be "/mnt"'
-  print '  -U/--umount                 umount a pos, set pos by -H'
+  print '  -U/--umount /mnt            umount the given pos'
   print '  -v/--verbose                display all shell command'
 
 
