@@ -9,11 +9,16 @@ if [[ "$1" == "--help" || "$1" == "-h" ]]; then
   echoex -green Usage: -r -n
   echo "  $(basename $0)"
   echo "  $(basename $0) //192.168.1.88"
+  echo "  $(basename $0) -U"
   exit 0
 fi
 
 if [ -n "$1" ]; then
-  python ${dir}/winshare.py -m /home/newk/WindowsShare -H $1
+  if [[ "$1" == "-U" ]]; then
+    python ${dir}/winshare.py -U /home/newk/WindowsShare
+  else
+    python ${dir}/winshare.py -m /home/newk/WindowsShare -H $1
+  fi
 else
   python ${dir}/winshare.py -m /home/newk/WindowsShare
 fi

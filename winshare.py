@@ -25,13 +25,14 @@ def usage():
   print '  -u/--username username      username, if not set, it will be "any"'
   print '  -p/--password password      password, if not set, it will be "any"'
   print '  -m/--mount /mnt             mount pos, if not set, it will be "/mnt"'
+  print '  -U/--umount                 umount a pos, set pos by -H'
   print '  -v/--verbose                display all shell command'
 
 
 def check_opt():
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "hvH:u:p:m:", 
-               ["help", "verbose", "Host", "username", "password", "mount"])
+    opts, args = getopt.getopt(sys.argv[1:], "hvH:u:U:p:m:", 
+         ["help", "verbose", "Host", "username", "umount", "password", "mount"])
     for opt, arg in opts:
       if opt in ("-h", "--help"):
         usage()
@@ -48,6 +49,9 @@ def check_opt():
       elif opt in ("-m", "--mount"):
         global g_mount_pos
         g_mount_pos = arg
+      elif opt in ("-U", "--umount"):
+        umount_device(arg)
+        exit(0);
       elif opt in ('-v', "--verbose"):
         global g_verbose
         g_verbose = True
@@ -58,6 +62,15 @@ def check_opt():
 
   while g_host_name == '':
     g_host_name = raw_input(colored('Please input host name:', 'blue'))
+  import re
+  if re.match('^\d{1,3}$', g_host_name):
+    g_host_name = '//192.168.18.' + g_host_name
+  if re.match('^\d{1,3}(\.\d{1,3}){1}$', g_host_name):
+    g_host_name = '//192.168.' + g_host_name
+  if re.match('^\d{1,3}(\.\d{1,3}){2}$', g_host_name):
+    g_host_name = '//192.' + g_host_name
+  if re.match('^\d{1,3}(\.\d{1,3}){3}$', g_host_name):
+    g_host_name = '//' + g_host_name
   if g_username == '':
     g_username = 'any'
   if g_password == '':
@@ -101,6 +114,11 @@ def mount_windows_share(host, share_name, mount_pos, username='', password=''):
   if a == 0:
     cprint('%s\%s' % (host, share_name), 'magenta', end=' ')
     print 'is now mount to ', colored(mount_pos, 'magenta')
+    print colored('Do you want to open it?', 'green'), colored(
+       'Press "Enter" for yes, input any char and press "Enter" for no', 'grey')
+    x = raw_input('Please make your choise:')
+    if x == '':
+      run_cmd('nautilus %s' % mount_pos)
   else:
     cprint_error('mount error, use "dmesg | tail" maybe helpful')
 
@@ -113,7 +131,7 @@ def umount_device(path):
   shell_cmd = 'sudo umount %s' % path
   a, _ = run_cmd(shell_cmd)
   if a != 0:
-    cprint_error('umount error, maybe nothing is mounted on %s', path)
+    cprint_error('umount error, maybe nothing is mounted on %s' % path)
   else:
     cprint('umount success', 'yellow')
 
