@@ -7,7 +7,13 @@ if [[ "$1" == "--help" || "$1" == "-h" ]]; then
   echoex -green "Path:     " -r $0 -n
   echoex -green "Descript: " -r "change the size of extern screen to 1024x768" -n
   echoex -green Usage: -r -n
-  echo "  $(basename $0)"
+  echo "  $(basename $0)         set the extern screen size to 1280x1024"
+  echo "  $(basename $0) --off   turn off extern screen manual"
+  exit 0
+fi
+
+if [[ "$1" == "--off" ]]; then
+  xrandr --output VGA1 --off
   exit 0
 fi
 
