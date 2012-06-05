@@ -1,0 +1,24 @@
+#!/bin/bash
+
+. echoex.sh
+
+if [[ "$1" == "--help" ]]; then
+  echo Path: $0
+  echo Descript: login to the VPS and auto save log into the ~/VPSlog/
+  echo Usage: 
+  echo $(basename $0) 
+  exit 0
+fi
+
+file_name=$HOME/VPSlog/`date +%F`
+VPS=newk@MyVPS
+echoex -green ============================================= -n | tee -a $file_name
+echoex Login: | tee -a $file_name
+date | tee -a $file_name
+echoex ============================================= -r -n | tee -a $file_name
+echoex -blue "Login using ssh. Please wait......" -r -n
+ssh $VPS | tee -a --ignore-interrupts $file_name 
+echoex -green ============================================= -n | tee -a $file_name
+echoex Logout: | tee -a $file_name
+date | tee -a $file_name
+echoex ============================================= -r -n | tee -a $file_name
