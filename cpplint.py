@@ -139,6 +139,14 @@ Syntax: cpplint.py [--verbose=#] [--output=vs7] [--filter=-x,+y,...]
       the top-level categories like 'build' and 'whitespace' will
       also be printed. If 'detailed' is provided, then a count
       is provided for each category like 'build/class'.
+
+Suppress errors:
+  if you want to suppress some errors in the file, you may:
+    1. use --filter=-xxx in the command-line
+    2. use "//glint: -xxx" in anywhere of the file
+  if you want to suppress some errors in one line, you may:
+    1. add "NOLINT(xxx)" in that line(you may always make it as a comment)
+    2. add "//NOLINT(xxx)" above that line(not support /* */ style)
 """
 
 # We categorize each error message we print.  Here are the categories.
@@ -153,7 +161,8 @@ _ERROR_CATEGORIES = [
   'build/explicit_make_pair',
   'build/forward_decl',
   'build/header_guard',
-  'build/include',
+  'build/include_directory',
+  'build/include_duplicate',
   'build/include_alpha',
   'build/include_order',
   'build/include_what_you_use',
@@ -182,7 +191,11 @@ _ERROR_CATEGORIES = [
   'runtime/member_string_references',
   'runtime/memset',
   'runtime/operator',
-  'runtime/printf',
+  'runtime/printf_potential',
+  'runtime/printf_sizeof',
+  'runtime/printf_sprintf',
+  'runtime/printf_snprintf',
+  'runtime/printf_sscanf',
   'runtime/printf_format',
   'runtime/references',
   'runtime/rtti',
@@ -292,6 +305,7 @@ _regexp_compile_cache = {}
 
 # Finds occurrences of NOLINT or NOLINT(...).
 _RE_SUPPRESSION = re.compile(r'\bNOLINT\b(\([^)]*\))?')
+_RE_SUPPRESSION_NEXT_LINE = re.compile(r'^\s*//\s*\bNOLINT\b(\([^)]*\))?')
 
 # {str, set(int)}: a map from error categories to sets of linenumbers
 # on which those errors are expected and should be suppressed.
@@ -315,12 +329,18 @@ def ParseNolintSuppressions(filename, raw_line, linenum, error):
   if matched:
     category = matched.group(1)
     if category in (None, '(*)'):  # => "suppress all"
-      _error_suppressions.setdefault(None, set()).add(linenum)
+      if _RE_SUPPRESSION_NEXT_LINE.match(raw_line):
+        _error_suppressions.setdefault(None, set()).add(linenum + 1)
+      else:
+        _error_suppressions.setdefault(None, set()).add(linenum)
     else:
       if category.startswith('(') and category.endswith(')'):
         category = category[1:-1]
         if category in _ERROR_CATEGORIES:
-          _error_suppressions.setdefault(category, set()).add(linenum)
+          if _RE_SUPPRESSION_NEXT_LINE.match(raw_line):
+            _error_suppressions.setdefault(category, set()).add(linenum + 1)
+          else:
+            _error_suppressions.setdefault(category, set()).add(linenum)
         else:
           error(filename, linenum, 'readability/nolint', 5,
                 'Unknown NOLINT error category: %s' % category)
@@ -543,6 +563,33 @@ class _CppLintState(object):
         raise ValueError('Every filter in --filters must start with + or -'
                          ' (%s does not)' % filt)
 
+  def SetFileScopeFilters(self, file_name, filters):
+    """Sets the error-message filters for the whole file.
+
+    These filters are applied when deciding whether to emit a given
+    error message.
+    These filters are setting in the file itself, syntax like:
+      // glint: -whitespace/indent
+
+    Args:
+      filters: A string of comma-separated filters (eg "+whitespace/indent").
+               Each filter should start with + or -; else we die.
+      file_name: Name of the file that set these filters
+
+    Raises:
+      ValueError: The comma-separated filters did not all start with '+' or '-'.
+                  E.g. "-,+whitespace,-whitespace/indent,whitespace/badfilter"
+    """
+    self.file_filters = []    
+    for filt in filters.split(','):
+      clean_filt = filt.strip()
+      if clean_filt:
+        self.file_filters.append(clean_filt)
+    for filt in self.file_filters:
+      if not (filt.startswith('+') or filt.startswith('-')):
+        raise ValueError('Every filter in --filters must start with + or -'
+                         ' (%s in %s does not)' % (filt, file_name))
+
   def ResetErrorCounts(self):
     """Sets the module's error statistic back to zero."""
     self.error_count = 0
@@ -595,7 +642,8 @@ def _SetCountingStyle(level):
 
 def _Filters():
   """Returns the module's list of output filters, as a list."""
-  return _cpplint_state.filters
+  # file filters always have high priority than the command line.
+  return _cpplint_state.filters + _cpplint_state.file_filters
 
 
 def _SetFilters(filters):
@@ -609,6 +657,18 @@ def _SetFilters(filters):
              Each filter should start with + or -; else we die.
   """
   _cpplint_state.SetFilters(filters)
+
+def _SetFileFilters(file_name, filters):
+  """Sets the module's error-message filters which set by the file itself.
+
+  These filters are applied when deciding whether to emit a given
+  error message.
+
+  Args:
+    filters: A string of comma-separated filters (eg "whitespace/indent").
+             Each filter should start with + or -; else we die.
+  """
+  _cpplint_state.SetFileScopeFilters(file_name, filters)
 
 
 class _FunctionState(object):
@@ -2395,7 +2455,7 @@ def CheckIncludeLine(filename, clean_lines, linenum, include_state, error):
 
   # "include" should use the new style "foo/bar.h" instead of just "bar.h"
   if _RE_PATTERN_INCLUDE_NEW_STYLE.search(line):
-    error(filename, linenum, 'build/include', 4,
+    error(filename, linenum, 'build/include_directory', 4,
           'Include the directory when naming .h files')
 
   # we shouldn't include a file more than once. actually, there are a
@@ -2406,7 +2466,7 @@ def CheckIncludeLine(filename, clean_lines, linenum, include_state, error):
     include = match.group(2)
     is_system = (match.group(1) == '<')
     if include in include_state:
-      error(filename, linenum, 'build/include', 4,
+      error(filename, linenum, 'build/include_duplicate', 4,
             '"%s" already included at %s:%s' %
             (include, filename, include_state[include]))
     else:
@@ -2660,21 +2720,21 @@ def CheckLanguage(filename, clean_lines, linenum, file_extension, include_state,
   match = Search(r'snprintf\s*\(([^,]*),\s*([0-9]*)\s*,', line)
   if match and match.group(2) != '0':
     # If 2nd arg is zero, snprintf is used to calculate size.
-    error(filename, linenum, 'runtime/printf', 3,
+    error(filename, linenum, 'runtime/printf_sizeof', 3,
           'If you can, use sizeof(%s) instead of %s as the 2nd arg '
           'to snprintf.' % (match.group(1), match.group(2)))
 
   # Check if some verboten C functions are being used.
   if Search(r'\bsprintf\b', line):
-    error(filename, linenum, 'runtime/printf', 5,
+    error(filename, linenum, 'runtime/printf_sprintf', 5,
           'Never use sprintf.  Use snprintf instead.')
   match = Search(r'\b(strcpy|strcat)\b', line)
   if match:
-    error(filename, linenum, 'runtime/printf', 4,
+    error(filename, linenum, 'runtime/printf_snprintf', 4,
           'Almost always, snprintf is better than %s' % match.group(1))
 
   if Search(r'\bsscanf\b', line):
-    error(filename, linenum, 'runtime/printf', 1,
+    error(filename, linenum, 'runtime/printf_sscanf', 1,
           'sscanf can be ok, but is slow and can overflow buffers.')
 
   # Check if some verboten operator overloading is going on
@@ -2706,7 +2766,7 @@ def CheckLanguage(filename, clean_lines, linenum, file_extension, include_state,
     if match:
       function_name = re.search(r'\b((?:string)?printf)\s*\(',
                                 line, re.I).group(1)
-      error(filename, linenum, 'runtime/printf', 4,
+      error(filename, linenum, 'runtime/printf_potential', 4,
             'Potential format string bug. Do %s("%%s", %s) instead.'
             % (function_name, match.group(1)))
 
@@ -3152,6 +3212,15 @@ def ProcessLine(filename, file_extension,
   for check_fn in extra_check_functions:
     check_fn(filename, clean_lines, line, error)
 
+def CheckFileScopeFilters(lines):
+  _filters = []
+  for line in lines:
+    _glint_match = Match(r'^\s*//\s*glint:\s*([+-][-a-zA-Z+,_ /]+)\s*(#.*)?$',
+                         line)
+    if _glint_match:
+      _filters.append(_glint_match.group(1))
+  return ','.join(_filters)
+
 def ProcessFileData(filename, file_extension, lines, error,
                     extra_check_functions=[]):
   """Performs lint checks and reports any errors to the given error function.
@@ -3175,6 +3244,8 @@ def ProcessFileData(filename, file_extension, lines, error,
   class_state = _ClassState()
 
   ResetNolintSuppressions()
+
+  _SetFileFilters(filename, CheckFileScopeFilters(lines))
 
   CheckForCopyright(filename, lines, error)
 
