@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if [[ "$1" == "--help" ]]; then
+  echo Path: $0
+  echo Descript: start to do some android coding
+  echo "Usage: $(basename $0)                -- start eclimd & AVD"
+  echo "       $(basename $0) noavd          -- start eclimd"
+  exit 0
+fi
+
+$HOME/Downloads/eclipse/eclimd 2>&1 1>/dev/null &
+if [[ "$1" != "noavd" ]]; then
+  emulator @GN -no-boot-anim -scale 0.5 2>&1 1>/dev/null &
+fi
