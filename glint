@@ -1,0 +1,25 @@
+#!/bin/bash
+
+dir=$(dirname $0)
+. ${dir}/echoex.sh
+
+LINT=$HOME/myscript/cpplint.py
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+  echoex -green "Path:     " -r $0 -n
+  echoex -green "Descript: " -r "lint c++ files" -n
+  echoex -green Usage: -r -n
+  echoex -blue "  $(basename $0) *" -r -n
+  echoex -blue "  $(basename $0) file_name.cpp file_name.h" -r -n
+  echoex -green "For more information about cpplint, use:" -r -n
+  echoex -blue "  python $LINT --help" -r -n
+  exit 0
+fi
+
+VERBOSE='--verbose=0'
+COUNTING='--counting=detailed'
+FILTER='--filter=-readability/streams,-whitespace/braces'
+
+python $LINT $VERBOSE $COUNTING --output=vs7 $FILTER $@ 2>&1 | tee glint_result
+
+echo ==============Complete=================
+echo All result is also saved in glint_result
