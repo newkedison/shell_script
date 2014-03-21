@@ -31,7 +31,7 @@ def usage():
 
 def check_opt():
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "hvH:u:U:p:m:", 
+    opts, args = getopt.getopt(sys.argv[1:], "hvH:u:U:p:m:",
          ["help", "verbose", "Host", "username", "umount", "password", "mount"])
     for opt, arg in opts:
       if opt in ("-h", "--help"):
@@ -80,7 +80,7 @@ def check_opt():
 
 def run_cmd(cmd):
   if g_verbose:
-    print 'Shell:', colored(shell_cmd, 'grey')
+    print 'Shell:', colored(cmd, 'grey')
   return commands.getstatusoutput(cmd)
 
 def get_smbclient_result(host, user, password):
@@ -108,8 +108,9 @@ def get_choise(msg, min_value, max_value):
   return c
 
 def mount_windows_share(host, share_name, mount_pos, username='', password=''):
-  shell_cmd = "sudo mount -t cifs -o username=%s,password=%s '%s\%s' '%s'" % (
-    username, password, host, share_name, mount_pos)
+  shell_cmd = "sudo mount -t cifs -o %s%sfile_mode=0766,dir_mode=0777 '%s\%s' '%s'" % (
+    ((username + ',') if username != '' else ''),
+    ((password + ',') if password != '' else ''), host, share_name, mount_pos)
   a, _ = run_cmd(shell_cmd)
   if a == 0:
     cprint('%s\%s' % (host, share_name), 'magenta', end=' ')
@@ -118,7 +119,7 @@ def mount_windows_share(host, share_name, mount_pos, username='', password=''):
        'Press "Enter" for yes, input any char and press "Enter" for no', 'grey')
     x = raw_input('Please make your choise:')
     if x == '':
-      run_cmd('nautilus %s' % mount_pos)
+      run_cmd('pcmanfm %s' % mount_pos)
   else:
     cprint_error('mount error, use "dmesg | tail" maybe helpful')
 
@@ -144,7 +145,7 @@ if __name__ == '__main__':
   cprint('here is all the shared folders on remote host', 'green')
   cprint('which one do you want to mount?', 'green')
   for i, s in enumerate(x):
-    print colored(i + 1, 'blue'), colored(s, 'yellow') 
+    print colored(i + 1, 'blue'), colored(s, 'yellow')
   print colored(i + 2, 'blue'), colored(
     'Do not mount, just call smbclient without filter', 'yellow')
   print colored(i + 3, 'blue'), colored(

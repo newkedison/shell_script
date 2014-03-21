@@ -1,0 +1,38 @@
+#!/bin/bash
+
+dir=$(dirname $0)
+. echoex.sh
+
+if [[ "$1" == "--help" || "$1" == "-h" || "$1" == "" ]]; then
+  echoex -green "Path:     " -r $0 -n
+  echoex -green "Descript: " -r "Edit file encrypted by gpg and encrypt again after edit." -n
+  echoex -green Usage: -r -n
+  echo "  $(basename $0) file-name"
+  exit 0
+fi
+
+GPGID_FILE=$HOME/myscript/gpg.id
+GPGID=`cat $GPGID_FILE`
+FILE=$1
+ORIGIN_FILE=${FILE}_origin
+
+
+set -e
+set -u
+# Uncomment below to show running commnad
+#set -x
+
+if [[ "$GPGID" == "" ]]; then
+  echo "Please write the id of gpg in file $GPGID_FILE"
+  exit -1
+fi
+
+if [[ -f $FILE ]]; then
+  set +e
+  gpg --yes --output $ORIGIN_FILE --decrypt $FILE
+  set -e
+fi
+vim -i NONE -N -u NONE -c "set noundofile viminfo=" $ORIGIN_FILE
+gpg --yes --recipient $GPGID --output $FILE --armor --cipher-algo AES256 --encrypt $ORIGIN_FILE
+rm $ORIGIN_FILE
+
