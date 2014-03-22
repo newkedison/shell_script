@@ -15,6 +15,7 @@ GPGID_FILE=$HOME/myscript/gpg.id
 GPGID=`cat $GPGID_FILE`
 FILE=$1
 ORIGIN_FILE=${FILE}_origin
+TMP_FILE=${FILE}_tmp
 
 
 set -e
@@ -28,11 +29,22 @@ if [[ "$GPGID" == "" ]]; then
 fi
 
 if [[ -f $FILE ]]; then
-  set +e
-  gpg --yes --output $ORIGIN_FILE --decrypt $FILE
-  set -e
+  base64 -d $FILE > $TMP_FILE \
+    && gpg --yes --output $ORIGIN_FILE --decrypt $TMP_FILE \
+    || gpg --yes --output $ORIGIN_FILE --decrypt $FILE \
+    || cp $FILE $ORIGIN_FILE
 fi
-vim -i NONE -N -u NONE -c "set noundofile viminfo=" $ORIGIN_FILE
-gpg --yes --recipient $GPGID --output $FILE --armor --cipher-algo AES256 --encrypt $ORIGIN_FILE
-rm $ORIGIN_FILE
+vim -i NONE -N -u NONE -c "set noundofile nobackup nu ruler showcmd incsearch hlsearch autoindent confirm viminfo= fileencodings=utf-8,gbk,ucs-bom,cp936 display=lastline laststatus=2 backspace=indent,eol,start" \
+  -c "nnoremap j gj" \
+  -c "nnoremap k gk" \
+  -c "nnoremap ; :" \
+  -c "nnoremap <space> 3<C-D>" \
+  -c "nnoremap <Tab> <C-w>w" \
+  -c "nmap <F6> :nohls" \
+  -c "vmap <C-c> \"+y<esc>" \
+  -c "inoremap <C-v> <esc>:set paste<cr>mua<C-R>+<esc>mv'uv'v=:set nopaste<cr>" \
+  $ORIGIN_FILE
+gpg --yes --recipient $GPGID --output $TMP_FILE --cipher-algo AES256 --encrypt $ORIGIN_FILE
+base64 $TMP_FILE > $FILE
+rm $ORIGIN_FILE $TMP_FILE
 
